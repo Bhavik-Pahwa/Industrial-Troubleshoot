@@ -8,7 +8,7 @@ def analyze_readings(readings: list[Any]) -> dict[str, Any]:
     anomalies: list[dict[str, Any]] = []
     limitations: list[str] = []
 
-    for reading in readings:
+    for reading_index, reading in enumerate(readings):
         name = str(reading.name or "").lower()
         sensor_id = reading.sensor_id
         value = reading.value
@@ -16,6 +16,7 @@ def analyze_readings(readings: list[Any]) -> dict[str, Any]:
         if value is None or not isinstance(value, (int, float)) or math.isnan(float(value)):
             anomalies.append(
                 {
+                    "reading_index": reading_index,
                     "sensor_id": sensor_id,
                     "category": "insufficient_data",
                     "observed_value": None,
@@ -38,6 +39,7 @@ def analyze_readings(readings: list[Any]) -> dict[str, Any]:
                     category = "high_value"
                 anomalies.append(
                     {
+                        "reading_index": reading_index,
                         "sensor_id": sensor_id,
                         "category": category,
                         "observed_value": float(value),

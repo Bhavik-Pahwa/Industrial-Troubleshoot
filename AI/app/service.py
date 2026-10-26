@@ -12,12 +12,17 @@ from .detector import analyze_readings
 def _extract_severity(anomalies: list[dict[str, Any]]) -> str:
     if not anomalies:
         return "low"
-    if any(a["category"] in {"insufficient_data", "high_temperature", "high_vibration"} for a in anomalies):
+    if any(
+        a["category"] in {"insufficient_data", "high_temperature", "high_vibration"}
+        for a in anomalies
+    ):
         return "high"
     return "medium"
 
 
-def _generate_mock_explanation(asset_id: str, anomalies: list[dict[str, Any]], limitations: list[str]) -> tuple[str, str, str]:
+def _generate_mock_explanation(
+    asset_id: str, anomalies: list[dict[str, Any]], limitations: list[str]
+) -> tuple[str, str, str]:
     if not anomalies:
         return (
             f"No threshold breaches were observed for {asset_id}. The supplied readings are within the configured operating limits.",
@@ -39,16 +44,12 @@ def _generate_mock_explanation(asset_id: str, anomalies: list[dict[str, Any]], l
             )
         else:
             explanation = f"The temperature reading at {sensor_id} exceeds the configured threshold and requires review."
-        title = "Elevated motor temperature"
+        title = "Elevated temperature"
     elif category == "high_vibration":
-        explanation = (
-            f"The vibration reading at {sensor_id} exceeded the configured threshold. The asset should be checked for imbalance, looseness, or bearing issues."
-        )
+        explanation = f"The vibration reading at {sensor_id} exceeded the configured threshold. The asset should be checked for imbalance, looseness, or bearing issues."
         title = "High vibration alert"
     else:
-        explanation = (
-            f"The reading from {sensor_id} requires attention because the data is incomplete or outside the expected range."
-        )
+        explanation = f"The reading from {sensor_id} requires attention because the data is incomplete or outside the expected range."
         title = "Inspection required"
 
     if limitations:
@@ -58,27 +59,47 @@ def _generate_mock_explanation(asset_id: str, anomalies: list[dict[str, Any]], l
     return explanation, title, recommendation
 
 
-def generate_analysis(prompt: str) -> str:
-    model_name = os.getenv("GEMMA_MODEL", "gemma3:4b")
+def model_name() -> str:
+    return os.getenv("OLLAMA_MODEL", os.getenv("GEMMA_MODEL", "gemma3:4b"))
+
+
+def model_health() -> dict[str, Any]:
+    available = False
+    try:
+        response = requests.get(
+            os.getenv("OLLAMA_URL", "http://127.0.0.1:11434") + "/api/tags", timeout=2
+        )
+        response.raise_for_status()
+        available = model_name() in {
+            model["name"] for model in response.json()["models"]
+        }
+    except (requests.RequestException, ValueError, KeyError):
+        pass
+    return {"status": "ok", "model_available": available, "model": model_name()}
+
+
+def generate_analysis(prompt: str) -> str | None:
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": model_name, "prompt": prompt, "stream": False, "options": {"temperature": 0.2}},
-            timeout=2,
+            os.getenv("OLLAMA_URL", "http://127.0.0.1:11434") + "/api/generate",
+            json={
+                "model": model_name(),
+                "prompt": prompt,
+                "stream": False,
+                "options": {"temperature": 0.2, "num_predict": 160},
+            },
+            timeout=float(os.getenv("OLLAMA_TIMEOUT", "30")),
         )
         if response.status_code == 200:
             payload = response.json()
             text = payload.get("response", "")
             if text:
                 return text.strip()
-    except Exception:
+    except (requests.RequestException, ValueError):
         pass
 
     # Fallback for local demo environments where the model is not installed yet.
-    return (
-        "The supplied telemetry indicates a threshold deviation, and the reading should be reviewed with the asset condition in mind. "
-        "The assessment is based on the recorded sensor values and configured limits only."
-    )
+    return None
 
 
 def build_result(asset_id: str, asset_type: str, readings: list[Any]) -> dict[str, Any]:
@@ -88,19 +109,35 @@ def build_result(asset_id: str, asset_type: str, readings: list[Any]) -> dict[st
 
     if anomalies:
         severity = _extract_severity(anomalies)
-        explanation, title, recommendation = _generate_mock_explanation(asset_id, anomalies, limitations)
+        explanation, title, recommendation = _generate_mock_explanation(
+            asset_id, anomalies, limitations
+        )
         confidence = 0.95
     else:
         severity = "low"
-        explanation, title, recommendation = _generate_mock_explanation(asset_id, anomalies, limitations)
+        explanation, title, recommendation = _generate_mock_explanation(
+            asset_id, anomalies, limitations
+        )
         confidence = 0.9
 
-    # The model text is intentionally short and deterministic to keep the demo stable.
+    # Give the model a factual verdict instead of asking it to reclassify readings.
+    facts = (
+        "Threshold breaches detected: "
+        + "; ".join(
+            f"{a['sensor_id']}: measured {a['observed_value']} {a['unit']}, "
+            f"upper limit {a['threshold']} {a['unit']} ({a['category']})"
+            for a in anomalies
+        )
+        if anomalies
+        else "No threshold breaches were detected in the supplied readings."
+    )
     prompt = (
         f"Asset: {asset_id}\nAsset type: {asset_type}\n"
-        f"Anomalies: {json.dumps(anomalies, default=str)}\n"
+        f"Verified detector result: {facts}\n"
         f"Limitations: {json.dumps(limitations)}\n"
-        "Write a concise industrial assessment in one paragraph."
+        "Summarize these verified sensor findings in two sentences for a monitoring dashboard. "
+        "Preserve the result exactly; do not recalculate or change the findings and do not "
+        "infer a cause. Recommend human review of any threshold breaches."
     )
     model_text = generate_analysis(prompt)
     if model_text:
@@ -115,6 +152,9 @@ def build_result(asset_id: str, asset_type: str, readings: list[Any]) -> dict[st
         "explanation": explanation,
         "recommended_action": recommendation,
         "confidence": confidence,
-        "limitations": limitations or ["Assessment is based on the supplied reading and configured threshold."],
+        "analysis_source": "ollama" if model_text else "threshold_fallback",
+        "model": model_name() if model_text else None,
+        "limitations": limitations
+        or ["Assessment is based on the supplied reading and configured threshold."],
     }
     return result

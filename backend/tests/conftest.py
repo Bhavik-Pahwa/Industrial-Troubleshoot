@@ -11,7 +11,7 @@ from indux.main import create_app
 from indux.time import utc_now
 
 CONTRACT = yaml.safe_load(
-    (Path(__file__).resolve().parents[2] / "INDUX_backend_api.yaml").read_text()
+    (Path(__file__).resolve().parents[2] / "FRONTEND" / "INDUX_backend_api.yaml").read_text()
 )
 
 

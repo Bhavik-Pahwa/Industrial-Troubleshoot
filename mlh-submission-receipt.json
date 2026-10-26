@@ -1,0 +1,48 @@
+{
+  "event": "Hacktoberfest Hack Day Delhi x SKILLOP DTU",
+  "event_url": "https://www.mlh.com/events/hacktoberfest-hack-day-delhi-x-skillop-dtu",
+  "submitted_at_ist": "2026-10-26 15:33:45 IST",
+  "project_id": "01a177aa-7d79-a4c9-d4f4-8e1f24488240",
+  "project_fields": {
+    "name": "INDUX — Industrial Telemetry Monitoring & Incident Intelligence",
+    "short_description": "Local-first industrial monitoring with telemetry dashboards, incident triage, and Gemma-powered equipment assessments.",
+    "description": "INDUX is a local-first industrial telemetry monitoring and incident intelligence prototype for viewing equipment, sensor readings, anomalies, and subsystem health.\n\nThe React and TypeScript operations interface provides an asset inventory, historical telemetry charts, an incident queue with acknowledgement and resolution workflows, system health views, and a telemetry ingestion simulator. It supports a live backend connection and a built-in demo simulation mode.\n\nThe Python FastAPI backend stores telemetry and incidents in SQLite, validates incoming readings, applies configurable demo thresholds, groups repeated anomalies into incidents, and exposes REST endpoints and WebSocket invalidations. Monitoring does not issue equipment-control commands.\n\nA separate FastAPI AI service checks supplied sensor readings against configured limits and calls the local Ollama API with Gemma 3 (gemma3:4b by default, configurable through GEMMA_MODEL) to generate a concise equipment assessment from the anomalies and limitations. It falls back to a predefined explanation when the model is unavailable. The backend MVP currently keeps its LLM integration disabled; the AI service is a separate component rather than an integrated end-to-end backend feature.\n\nThe frontend and AI service include MIT licenses. This is a localhost-oriented prototype with illustrative thresholds and simulated demo data, not a production industrial control or safety system.",
+    "built_with": [
+      "python",
+      "fastapi",
+      "uvicorn",
+      "pydantic",
+      "sqlite",
+      "typescript",
+      "react",
+      "vite",
+      "tailwindcss",
+      "react-router",
+      "tanstack-query",
+      "recharts",
+      "websockets",
+      "ollama",
+      "gemma",
+      "gemma3:4b",
+      "requests",
+      "pytest",
+      "vitest"
+    ],
+    "ai_tools": [
+      "codex",
+      "coding:openai/gpt-6"
+    ],
+    "source_url": "https://github.com/Bhavik-Pahwa/Industrial-Troubleshoot",
+    "demo_video_url": "https://youtu.be/2m2nBB7XK-A",
+    "extra_links": []
+  },
+  "category": {
+    "name": "Best Open-Source AI Project",
+    "status": "submitted",
+    "sponsor_usage": "INDUX's separate, MIT-licensed AI service uses the open-weight Gemma 3 model through local Ollama inference to turn sensor threshold anomalies and data limitations into concise industrial equipment assessments. The source is public, and the service includes a predefined fallback when the model is unavailable; the monitoring backend's LLM integration remains disabled in this prototype."
+  },
+  "skipped_category": {
+    "name": "Best Use of Gemma 4",
+    "reason": "Repository defaults to Gemma 3 via Ollama; no Gemma 4 usage found."
+  }
+}

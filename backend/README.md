@@ -1,8 +1,12 @@
 # INDUX backend
 
-Local FastAPI + SQLite implementation of [`INDUX_Backend_MVP_PRD.md`](../INDUX_Backend_MVP_PRD.md)
-and [`INDUX_backend_api.yaml`](../INDUX_backend_api.yaml). All backend source, configuration,
+Local FastAPI + SQLite implementation of
+[`INDUX_backend_api.yaml`](../FRONTEND/INDUX_backend_api.yaml). All backend source, configuration,
 tests, environment files, and runtime data live under this directory.
+
+For the connected frontend + backend + AI stack, use the [root setup guide](../README.md).
+Set `INDUX_DETECTOR=ai` to use the AI service on port 8001. Standalone instructions
+below use the demo detector with the LLM disabled.
 
 ## Setup and run
 
@@ -209,8 +213,8 @@ to get server-computed status. The frontend must not calculate competing equipme
 On connection/reconnection, refresh REST snapshots. Events have no replay. Each client
 has a 128-event buffer; overflow disconnects with code 1013 so the client can reconnect
 and resync. No client messages are needed, and incoming messages trigger no commands.
-There is no frontend in this repository yet; its integration points are the REST contract
-and the event table above.
+The frontend lives in `../FRONTEND` and uses REST polling. The event table above is
+also available to WebSocket clients.
 
 ## Verification
 

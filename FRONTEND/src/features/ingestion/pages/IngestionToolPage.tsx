@@ -20,24 +20,17 @@ const PRESET_NORMAL_BATCH: TelemetryBatch = {
   source_id: 'edge-gateway-plc-01',
   readings: [
     {
-      asset_id: 'pump-101',
-      sensor_id: 'sensor-p101-vib',
+      asset_id: 'pump-01',
+      sensor_id: 'vibration',
       value: 4.82,
       unit: 'mm/s',
       timestamp: new Date().toISOString(),
     },
     {
-      asset_id: 'pump-101',
-      sensor_id: 'sensor-p101-temp',
+      asset_id: 'pump-01',
+      sensor_id: 'temperature',
       value: 68.5,
-      unit: '°C',
-      timestamp: new Date().toISOString(),
-    },
-    {
-      asset_id: 'pump-101',
-      sensor_id: 'sensor-p101-press',
-      value: 3.75,
-      unit: 'bar',
+      unit: 'degC',
       timestamp: new Date().toISOString(),
     },
   ],
@@ -47,15 +40,15 @@ const PRESET_ANOMALY_BATCH: TelemetryBatch = {
   source_id: 'edge-gateway-plc-02',
   readings: [
     {
-      asset_id: 'comp-204',
-      sensor_id: 'sensor-c204-temp',
+      asset_id: 'motor-01',
+      sensor_id: 'temperature',
       value: 174.2, // Critical thermal spike
-      unit: '°C',
+      unit: 'degC',
       timestamp: new Date().toISOString(),
     },
     {
-      asset_id: 'comp-204',
-      sensor_id: 'sensor-c204-vib',
+      asset_id: 'motor-01',
+      sensor_id: 'vibration',
       value: 12.4, // High crosshead velocity
       unit: 'mm/s',
       timestamp: new Date().toISOString(),
@@ -67,15 +60,15 @@ const PRESET_MIXED_REJECT_BATCH: TelemetryBatch = {
   source_id: 'edge-gateway-plc-03',
   readings: [
     {
-      asset_id: 'motor-301',
-      sensor_id: 'sensor-m301-curr',
-      value: 145.2,
-      unit: 'A',
+      asset_id: 'motor-01',
+      sensor_id: 'temperature',
+      value: 65,
+      unit: 'degC',
       timestamp: new Date().toISOString(),
     },
     {
       // Missing required sensor_id to test API rejection handling
-      asset_id: 'motor-301',
+      asset_id: 'motor-01',
       sensor_id: '',
       // @ts-expect-error test invalid value
       value: 'invalid_number',
@@ -104,6 +97,8 @@ export const IngestionToolPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['latestTelemetry'] });
       queryClient.invalidateQueries({ queryKey: ['systemStatus'] });
       queryClient.invalidateQueries({ queryKey: ['telemetryHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
       showToast(
         result.rejected > 0 ? 'info' : 'success',
         'Batch Ingestion Processed',
@@ -204,7 +199,7 @@ export const IngestionToolPage: React.FC = () => {
           className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors flex items-center gap-1.5"
         >
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Pump P-101 Normal Batch (3 readings)</span>
+          <span>Pump pump-01 Normal Batch (2 readings)</span>
         </button>
 
         <button
@@ -213,7 +208,7 @@ export const IngestionToolPage: React.FC = () => {
           className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors flex items-center gap-1.5"
         >
           <Zap className="w-3.5 h-3.5 text-amber-400" />
-          <span>Compressor C-204 Thermal Excursion (2 readings)</span>
+          <span>Motor motor-01 Thermal Excursion (2 readings)</span>
         </button>
 
         <button
@@ -239,6 +234,7 @@ export const IngestionToolPage: React.FC = () => {
           </div>
 
           <textarea
+            aria-label="Telemetry batch JSON"
             rows={14}
             value={payloadJson}
             onChange={(e) => setPayloadJson(e.target.value)}

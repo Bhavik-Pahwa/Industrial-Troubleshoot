@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../../api/client';
@@ -44,24 +44,21 @@ export const AssetDetailPage: React.FC = () => {
     new Date().toISOString().slice(0, 16)
   );
   const [isCustomRange, setIsCustomRange] = useState(false);
+  const [appliedRange, setAppliedRange] = useState<{ start: string; end: string } | null>(null);
   const [rangeError, setRangeError] = useState<string | null>(null);
 
   // Selected sensor for the chart to prevent incompatible unit mixing
   const [selectedSensorId, setSelectedSensorId] = useState<string>('all');
 
   // Compute start/end ISO strings
-  const getQueryRange = () => {
-    if (isCustomRange) {
-      const s = new Date(customStart).toISOString();
-      const e = new Date(customEnd).toISOString();
-      return { start: s, end: e };
+  const { start, end } = useMemo(() => {
+    if (isCustomRange && appliedRange) {
+      return appliedRange;
     }
     const end = new Date();
     const start = new Date(end.getTime() - rangeHours * 3600 * 1000);
     return { start: toUtcIsoString(start), end: toUtcIsoString(end) };
-  };
-
-  const { start, end } = getQueryRange();
+  }, [isCustomRange, appliedRange, rangeHours]);
 
   // 1. Fetch Asset
   const {
@@ -170,16 +167,16 @@ export const AssetDetailPage: React.FC = () => {
 
   const handleApplyCustomRange = (e: React.FormEvent) => {
     e.preventDefault();
-    const sIso = new Date(customStart).toISOString();
-    const eIso = new Date(customEnd).toISOString();
+    const sIso = customStart ? `${customStart}:00Z` : '';
+    const eIso = customEnd ? `${customEnd}:00Z` : '';
     const validation = validateDateRange(sIso, eIso);
     if (!validation.valid) {
       setRangeError(validation.error || 'Invalid date range');
       return;
     }
     setRangeError(null);
+    setAppliedRange({ start: sIso, end: eIso });
     setIsCustomRange(true);
-    refetchHistory();
   };
 
   return (
@@ -397,6 +394,7 @@ export const AssetDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-slate-500">Start (UTC):</span>
             <input
+              aria-label="Start (UTC)"
               type="datetime-local"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
@@ -406,6 +404,7 @@ export const AssetDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-slate-500">End (UTC):</span>
             <input
+              aria-label="End (UTC)"
               type="datetime-local"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}

@@ -2,6 +2,10 @@
 
 Local-first industrial monitoring interface for viewing industrial assets, sensor telemetry, anomalies/incidents, and subsystem health status.
 
+For the connected frontend, backend, and local AI setup, see the [root guide](../README.md).
+Run `npm run test:e2e` against that running stack to verify real browser ingestion,
+AI assessments, and incident actions.
+
 Conforms strictly to the canonical API contract: **`INDUX_backend_api.yaml` (OpenAPI 3.1.0, version 0.1.0)** and **`INDUX_FRONTEND_PRD.md`**.
 
 ---

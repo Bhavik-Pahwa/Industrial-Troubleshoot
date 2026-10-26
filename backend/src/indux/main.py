@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from indux.api import assets, incidents, system, telemetry
 from indux.config import Settings
+from indux.detectors.ai import AIDetector
 from indux.detectors.base import Detector
 from indux.detectors.demo import DemoDetector
 from indux.errors import install_handlers
@@ -56,13 +57,16 @@ def create_app(settings: Settings | None = None, detector: Detector | None = Non
         detector_status = "ready"
         try:
             if configured_detector is None:
-                configured_detector = await run_in_threadpool(load_detector, settings.detector)
+                if settings.detector == "ai":
+                    configured_detector = AIDetector(database)
+                else:
+                    configured_detector = await run_in_threadpool(load_detector, settings.detector)
             if configured_detector is None:
                 detector_status = "not_configured"
         except Exception:
             detector_status = "unavailable"
             logger.exception("Detector initialization failed; telemetry remains available")
-        app.state.status = StatusService(database, detector_status)
+        app.state.status = StatusService(database, detector_status, configured_detector)
         if not database_ready:
             app.state.status.ingestion = "error"
         app.state.assets = AssetService(database, settings.freshness_seconds)
